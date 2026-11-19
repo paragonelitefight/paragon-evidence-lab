@@ -1,0 +1,29 @@
+PARAGON COORDINATED CANDIDATE PACKAGE — 0.10.0
+
+This package combines the isolated Worker source with research modules. It is not all promised advanced functionality completed, tested or production-ready. No new tests are requested or triggered by this delivery. The earlier green CI result belongs to the earlier repository revision and its limited PIR/source-packaging checks only; it does not validate these additions.
+
+OWNER STEP NOW
+Upload the extracted package CONTENTS to the existing paragon-evidence-lab repository root, preserving the directory layout. Do not upload the ZIP as a single file. It is public; this package contains no private keys, original corporate PDFs or customer records. The existing workflow has manual dispatch only and no automatic push trigger. Do not run Actions or deploy to Cloudflare yet. No new service or billing account is required for this preparation.
+
+CODE ADDED
+- worker/main.js and vendor files, plus dist/paragon-evidence-worker.mjs assembled standalone source.
+- GET/list/nonstreaming NLWeb-style candidate, disabled by default. Not full NLWeb/MCP.
+- Signed HTTP evidence response and key directory candidates, require a separate HTTP_SIGNATURE_JWK encrypted secret only on a NEW isolated Worker.
+- protocols/web-bot-auth-request.mjs creates request headers locally; sends no requests and does not register a bot or authenticate incoming requests.
+- protocols/ap2-jwt-binding-inspector.mjs checks a narrow ES256 signed Checkout JWT profile and expected hash under an independently supplied trusted public key. It is NOT a complete AP2/SD-JWT/mandate-chain verifier and authorizes no purchase.
+- protocols/anp-integration-boundary.json keeps ANP disabled rather than advertising nonexistent DID authentication.
+- fhe/CMakeLists.txt wires the synthetic C++ sample to an independently installed OpenFHE build; dependency version qualification remains required.
+- Existing Noir, XOR PIR and TLA+ research sources remain separate, synthetic and unexecuted by the assistant.
+
+NOT COMPLETE
+Actual ZK proof generation; FHE execution; TLC model checking and implementation conformance; two independent noncolluding PIR operators; full NLWeb/ANP/AP2 interoperability; active registered Web Bot Auth; TEE; independent third-party reproduction of the Worker; any new runtime/security acceptance.
+
+NOT PERFORMED
+Worker deployment, key generation/configuration, changes to old Workers/checkout, real payment/order actions, new GitHub Actions runs, OpenTimestamps submission or completed Bitcoin proof, publication of private corporate documents. Shopify/DHL issuer attestation is deferred at the owner's request.
+
+COST BOUNDARY
+No paid service is provisioned. Later computation still needs a suitable runtime. Standard GitHub-hosted runner compute is free for public repositories under GitHub's current terms; larger runners, private-repo overage and storage are not blanket-free. No TEE provider has been provisioned or represented as free.
+
+ASSEMBLY RECIPE
+From this directory with Node available: node build/worker-pack.mjs
+This writes deterministic source artifacts only. It does not execute or deploy the Worker. A successful repeatable assembly is not a third-party independent reproduction or formal verification. Dependency licenses are in worker/vendor; no license for original merchant materials is newly granted.

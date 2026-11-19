@@ -1,3 +1,6 @@
+PARAGON COORDINATED CANDIDATE 0.10.0 — READ NEXT-STEPS.txt FIRST
+The notes below describe the research subpackage only. The additional Worker and protocol-candidate sources are documented in NEXT-STEPS.txt. None of these new additions has been tested or deployed.
+
 PARAGON ISOLATED RESEARCH EXTENSION — SOURCE CANDIDATE
 Prepared 19 November 2026. No tests, builds, deployments, external submissions or paid resource creation performed.
 
