@@ -1,0 +1,3 @@
+# SYNTHETIC INPUTS ONLY. These are not actual shipment records.
+transit_hours = "48"
+limit_hours = "72"
