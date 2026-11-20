@@ -62,14 +62,25 @@ jobs:
           test -n "$CLI"
           chmod u+x "$CLI"
           "$CLI" --version
-          CONFIG="$RUNNER_TEMP/paragon-public-build.toml"
-          "$CLI" network add-local testnet testnet.grpc.oasis.io:443 --symbol TEST --num-decimals 9 --description 'Public TESTNET build only' -y --config "$CONFIG"
-          "$CLI" paratime list --config "$CONFIG"
+          # Ephemeral CI uses the CLI's documented first-run public defaults.
+          # No custom empty profile, local-node command, wallet or on-chain operation.
+          "$CLI" network list | tee out/ci-networks.txt
+          if ! grep -Eq '^[[:space:]]*testnet([[:space:]]|$)' out/ci-networks.txt; then
+            "$CLI" network add --help > out/network-add-help.txt
+            for flag in --symbol --num-decimals --description; do
+              grep -q -- "$flag" out/network-add-help.txt || { cat out/network-add-help.txt; exit 1; }
+            done
+            "$CLI" network add testnet testnet.grpc.oasis.io:443 --symbol TEST --num-decimals 9 --description 'Public TESTNET build only' -y
+          fi
+          "$CLI" paratime list | tee out/ci-paratimes.txt
+          if ! grep -Eq 'testnet[[:space:]]+sapphire[[:space:]].*a6d1e3ebf60dff6c' out/ci-paratimes.txt; then
+            "$CLI" paratime add testnet sapphire 000000000000000000000000000000000000000000000000a6d1e3ebf60dff6c --symbol TEST --num-decimals 18 --description 'Sapphire Testnet' -y
+          fi
           cd app
-          "$CLI" rofl build --deployment testnet --config "$CONFIG" 2>&1 | tee ../out/orc-build.log
+          "$CLI" rofl build --deployment testnet 2>&1 | tee ../out/orc-build.log
           BUNDLE=$(find "$PWD" -maxdepth 1 -type f -name '*.orc' -print -quit)
           test -n "$BUNDLE"
-          "$CLI" rofl identity "$BUNDLE" --config "$CONFIG" > ../out/enclave-identity.txt
+          "$CLI" rofl identity "$BUNDLE" > ../out/enclave-identity.txt
           test -s ../out/enclave-identity.txt
       - name: Package actual results, bundle and source - never invent a pass
         if: always()
