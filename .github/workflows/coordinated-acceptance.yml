@@ -1,0 +1,117 @@
+name: Coordinated isolated evidence acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: paragon-evidence-acceptance
+  cancel-in-progress: false
+jobs:
+  coordinated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact repository revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Restore uploaded file paths inside this temporary runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r source destination; do
+            test -f "$source" || { echo "Missing uploaded root file: $source"; exit 1; }
+            mkdir -p "$(dirname "$destination")"
+            cp -- "$source" "$destination"
+          done <<'FILES'
+          core.mjs acceptance/core.mjs
+          research.sh acceptance/research.sh
+          zk.mjs acceptance/zk.mjs
+          assemble-local.sh build/assemble-local.sh
+          integration-assets.json build/integration-assets.json
+          pack.mjs build/pack.mjs
+          worker-integrated-pack.mjs build/worker-integrated-pack.mjs
+          worker-pack.mjs build/worker-pack.mjs
+          batch-check.html worker/batch-check.html
+          batch-check.mjs worker/batch-check.mjs
+          integration.js worker/integration.js
+          main.js worker/main.js
+          research.html worker/research.html
+          additional-licenses.txt worker/vendor/additional-licenses.txt
+          ml-dsa.mjs worker/vendor/ml-dsa.mjs
+          ots-license.txt worker/vendor/ots-license.txt
+          ots.js worker/vendor/ots.js
+          qr.js worker/vendor/qr.js
+          public-shipping-summary.txt evidence/public-shipping-summary.txt
+          public-shipping-summary.txt.ots evidence/public-shipping-summary.txt.ots
+          receipt-inspection.json evidence/receipt-inspection.json
+          CMakeLists.txt fhe/CMakeLists.txt
+          main.cpp fhe/main.cpp
+          EvidenceStatus.cfg formal/EvidenceStatus.cfg
+          EvidenceStatus.tla formal/EvidenceStatus.tla
+          pir.mjs pir/pir.mjs
+          test.mjs pir/test.mjs
+          anp-integration-boundary.json protocols/anp-integration-boundary.json
+          ap2-jwt-binding-inspector.mjs protocols/ap2-jwt-binding-inspector.mjs
+          web-bot-auth-request.mjs protocols/web-bot-auth-request.mjs
+          Nargo.toml zk/Nargo.toml
+          Prover.toml zk/Prover.toml
+          main.nr zk/src/main.nr
+          FILES
+          node --version
+          node -e "if(Number(process.versions.node.split('.')[0])<22)process.exit(1)"
+          echo 'Temporary runner layout restored. No repository commit or deployment performed.'
+      - name: Core signatures, tampering and Worker assembly checks
+        id: core
+        continue-on-error: true
+        timeout-minutes: 8
+        run: node acceptance/core.mjs
+      - name: TLC finite status-policy model
+        id: tlc
+        continue-on-error: true
+        timeout-minutes: 6
+        run: bash acceptance/research.sh tlc
+      - name: OpenFHE synthetic encrypted computation
+        id: fhe
+        continue-on-error: true
+        timeout-minutes: 25
+        run: bash acceptance/research.sh fhe
+      - name: Noir synthetic proof generation and verification
+        id: zk
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/noir"
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 -o "$RUNNER_TEMP/noir.tar.gz" https://github.com/noir-lang/noir/releases/download/v1.0.0-beta.20/noir-x86_64-unknown-linux-gnu.tar.gz
+          sha256sum "$RUNNER_TEMP/noir.tar.gz"
+          tar -xzf "$RUNNER_TEMP/noir.tar.gz" -C "$RUNNER_TEMP/noir"
+          "$RUNNER_TEMP/noir/nargo" --version
+          (cd zk && "$RUNNER_TEMP/noir/nargo" compile)
+          npm install --no-save --ignore-scripts --package-lock=false --no-audit --no-fund @noir-lang/noir_js@1.0.0-beta.20 @aztec/bb.js@3.0.0-nightly.20251104
+          node acceptance/zk.mjs
+      - name: Combined result and honest acceptance gate
+        if: always()
+        env:
+          CORE: ${{ steps.core.outcome }}
+          TLC: ${{ steps.tlc.outcome }}
+          FHE: ${{ steps.fhe.outcome }}
+          ZK: ${{ steps.zk.outcome }}
+        shell: bash
+        run: |
+          echo "Core=$CORE; TLC=$TLC; FHE=$FHE; ZK=$ZK"
+          {
+            echo '## Coordinated evidence results'
+            echo "Core: $CORE"
+            echo "TLC: $TLC"
+            echo "OpenFHE: $FHE"
+            echo "Noir ZK: $ZK"
+            echo ''
+            echo 'Scope: local/synthetic acceptance only. Not full ANP/AP2, registered WBA, TEE, independent PIR/build, carrier authenticity, Bitcoin consensus or security certification.'
+            echo 'No artifacts, cache, secrets, payment, scheduled run, repository write or deployment.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if test -d acceptance/results; then
+            find acceptance/results -maxdepth 1 -name '*.json' -type f -exec cat {} \;
+          fi
+          test "$CORE" = success && test "$TLC" = success && test "$FHE" = success && test "$ZK" = success
