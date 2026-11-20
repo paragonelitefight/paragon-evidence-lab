@@ -1,124 +1,120 @@
-name: Coordinated isolated evidence acceptance
+name: Pinned synthetic ZK qualification
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: paragon-evidence-acceptance
+  group: paragon-pinned-zk
   cancel-in-progress: false
 jobs:
-  coordinated:
+  zk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 15
     steps:
-      - name: Checkout exact repository revision
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
-      - name: Restore uploaded file paths inside this temporary runner only
+      - name: Prepare isolated synthetic project and pinned tools
         shell: bash
         run: |
           set -euo pipefail
-          while read -r source destination; do
-            test -f "$source" || { echo "Missing uploaded root file: $source"; exit 1; }
-            mkdir -p "$(dirname "$destination")"
-            cp -- "$source" "$destination"
-          done <<'FILES'
-          core.mjs acceptance/core.mjs
-          research.sh acceptance/research.sh
-          zk.mjs acceptance/zk.mjs
-          assemble-local.sh build/assemble-local.sh
-          integration-assets.json build/integration-assets.json
-          pack.mjs build/pack.mjs
-          worker-integrated-pack.mjs build/worker-integrated-pack.mjs
-          worker-pack.mjs build/worker-pack.mjs
-          batch-check.html worker/batch-check.html
-          batch-check.mjs worker/batch-check.mjs
-          integration.js worker/integration.js
-          main.js worker/main.js
-          research.html worker/research.html
-          additional-licenses.txt worker/vendor/additional-licenses.txt
-          ml-dsa.mjs worker/vendor/ml-dsa.mjs
-          ots-license.txt worker/vendor/ots-license.txt
-          ots.js worker/vendor/ots.js
-          qr.js worker/vendor/qr.js
-          public-shipping-summary.txt evidence/public-shipping-summary.txt
-          public-shipping-summary.txt.ots evidence/public-shipping-summary.txt.ots
-          receipt-inspection.json evidence/receipt-inspection.json
-          CMakeLists.txt fhe/CMakeLists.txt
-          main.cpp fhe/main.cpp
-          EvidenceStatus.cfg formal/EvidenceStatus.cfg
-          EvidenceStatus.tla formal/EvidenceStatus.tla
-          pir.mjs pir/pir.mjs
-          test.mjs pir/test.mjs
-          anp-integration-boundary.json protocols/anp-integration-boundary.json
-          ap2-jwt-binding-inspector.mjs protocols/ap2-jwt-binding-inspector.mjs
-          web-bot-auth-request.mjs protocols/web-bot-auth-request.mjs
-          Nargo.toml zk/Nargo.toml
-          Prover.toml zk/Prover.toml
-          main.nr zk/src/main.nr
-          FILES
           node --version
-          node -e "if(Number(process.versions.node.split('.')[0])<22)process.exit(1)"
-          echo 'Temporary runner layout restored. No repository commit or deployment performed.'
-      - name: Core signatures, tampering and Worker assembly checks
-        id: core
-        continue-on-error: true
-        timeout-minutes: 8
-        run: node acceptance/core.mjs
-      - name: TLC finite status-policy model
-        id: tlc
-        continue-on-error: true
-        timeout-minutes: 6
-        run: bash acceptance/research.sh tlc
-      - name: OpenFHE synthetic encrypted computation
-        id: fhe
-        continue-on-error: true
-        timeout-minutes: 25
-        run: bash acceptance/research.sh fhe
-      - name: Noir synthetic proof generation and verification
-        id: zk
-        continue-on-error: true
-        timeout-minutes: 12
+          mkdir -p "$RUNNER_TEMP/paragon-pinned-zk/zk/src" "$RUNNER_TEMP/paragon-pinned-zk/tools"
+          cd "$RUNNER_TEMP/paragon-pinned-zk"
+          printf '%s\n' '{"private":true,"type":"module"}' > package.json
+          cat > zk/Nargo.toml <<'TOML'
+          [package]
+          name = "paragon_private_transit_predicate"
+          type = "bin"
+          authors = ["Paragon Elite Fight Group"]
+          [dependencies]
+          TOML
+          cat > zk/src/main.nr <<'NOIR'
+          fn main(transit_hours: u32, limit_hours: pub u32) {
+              assert(limit_hours > 0);
+              assert(limit_hours <= 8760);
+              assert(transit_hours <= limit_hours);
+          }
+          NOIR
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 -o noir.tar.gz https://github.com/noir-lang/noir/releases/download/v1.0.0-beta.20/noir-x86_64-unknown-linux-gnu.tar.gz
+          echo '8fa04d56093dadd8e995c6fb3f93ddf5799fb1dc38033d08d554d607c8432ae7  noir.tar.gz' | sha256sum --check
+          tar -xzf noir.tar.gz -C tools
+          ./tools/nargo --version
+          (cd zk && ../tools/nargo compile)
+          npm install --no-save --ignore-scripts --package-lock=false --no-audit --no-fund @noir-lang/noir_js@1.0.0-beta.20 @aztec/bb.js@5.0.0-nightly.20260324
+          node --input-type=module -e 'import{readFileSync}from"node:fs";for(const[p,v]of[["@noir-lang/noir_js","1.0.0-beta.20"],["@aztec/bb.js","5.0.0-nightly.20260324"]]){const a=JSON.parse(readFileSync("node_modules/"+p+"/package.json"));if(a.version!==v)throw Error("Version mismatch: "+p);console.log(p+"="+a.version)}'
+          cat > run-zk.mjs <<'JAVASCRIPT'
+          // Synthetic qualification only. Pair selected from Noir beta.20 scripts/install_bb.sh.
+          import assert from 'node:assert/strict';
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          import {Noir} from '@noir-lang/noir_js';
+          import {Barretenberg,BackendType,UltraHonkBackend,UltraHonkVerifierBackend} from '@aztec/bb.js';
+          const hash=x=>createHash('sha256').update(x).digest('hex');
+          const circuitBytes=await readFile('zk/target/paragon_private_transit_predicate.json');
+          const circuit=JSON.parse(circuitBytes);
+          const noir=new Noir(circuit);
+          console.log('PHASE 1: execute synthetic predicate and reject invalid inputs');
+          const {witness}=await noir.execute({transit_hours:'48',limit_hours:'72'});
+          for(const input of [{transit_hours:'73',limit_hours:'72'},{transit_hours:'0',limit_hours:'0'},{transit_hours:'1',limit_hours:'8761'}])await assert.rejects(noir.execute(input));
+          let api;
+          const settings={verifierTarget:'noir-recursive'};
+          try {
+           console.log('PHASE 2: initialize pinned Barretenberg 5 WASM API, one thread');
+           api=await Barretenberg.new({backend:BackendType.Wasm,threads:1});
+           const prover=new UltraHonkBackend(circuit.bytecode,api);
+           console.log('PHASE 3: generate proof');
+           const proof=await prover.generateProof(witness,settings);
+           assert.ok(proof.proof instanceof Uint8Array && proof.proof.length>0);
+           console.log('PHASE 4: verify generated proof and export verification key');
+           assert.equal(await prover.verifyProof(proof,settings),true);
+           const verificationKey=await prover.getVerificationKey(settings);
+           const verifier=new UltraHonkVerifierBackend(api);
+           assert.equal(await verifier.verifyProof({...proof,verificationKey},settings),true);
+           console.log('PHASE 5: reject tampered proof and wrong public input');
+           const bad=proof.proof.slice();bad[Math.floor(bad.length/2)]^=1;
+           let accepted=false;try{accepted=await verifier.verifyProof({...proof,proof:bad,verificationKey},settings);}catch{}
+           assert.equal(accepted,false,'Changed proof must not verify');
+           assert.ok(proof.publicInputs.length>0,'Public limit must be present');
+           const changedInputs=proof.publicInputs.slice();
+           changedInputs[0]='0x'+(BigInt(changedInputs[0])+1n).toString(16).padStart(64,'0');
+           accepted=false;try{accepted=await verifier.verifyProof({...proof,publicInputs:changedInputs,verificationKey},settings);}catch{}
+           assert.equal(accepted,false,'Changed public input must not verify');
+           const result={format:'paragon-synthetic-zk-proof/2',status:'passed',compiler:'1.0.0-beta.20',noirJs:'1.0.0-beta.20',barretenberg:'5.0.0-nightly.20260324',backend:'Wasm',settings,predicate:'hidden transit_hours <= public limit_hours; public limit in 1..8760',synthetic:true,sourceAuthenticated:false,circuitSha256:hash(circuitBytes),proofSha256:hash(proof.proof),verificationKeySha256:hash(verificationKey),publicInputs:proof.publicInputs,proofBase64:Buffer.from(proof.proof).toString('base64'),verificationKeyBase64:Buffer.from(verificationKey).toString('base64'),invalidInputsRejected:true,tamperedProofRejected:true,wrongPublicInputRejected:true,scope:'One local synthetic predicate proof. Not actual shipment evidence, full system certification or independent third-party verification.'};
+           await writeFile('zk-pinned-result.json',JSON.stringify(result,null,2)+'\n');
+           console.log('PARAGON_ZK_RESULT_BEGIN');console.log(JSON.stringify(result));console.log('PARAGON_ZK_RESULT_END');
+           console.log('PASS: pinned synthetic proof verified; tampered proof and wrong public input rejected.');
+          } finally {if(api)await api.destroy();}
+          JAVASCRIPT
+      - name: Generate proof, verify and reject altered proof and public input
+        id: proof
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/noir"
-          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 -o "$RUNNER_TEMP/noir.tar.gz" https://github.com/noir-lang/noir/releases/download/v1.0.0-beta.20/noir-x86_64-unknown-linux-gnu.tar.gz
-          sha256sum "$RUNNER_TEMP/noir.tar.gz"
-          tar -xzf "$RUNNER_TEMP/noir.tar.gz" -C "$RUNNER_TEMP/noir"
-          "$RUNNER_TEMP/noir/nargo" --version
-          # Isolate the project from the flattened root Nargo.toml.
-          zk_project="$(mktemp -d "$RUNNER_TEMP/paragon-zk.XXXXXX")"
-          mkdir -p "$zk_project/src"
-          cp zk/Nargo.toml "$zk_project/Nargo.toml"
-          cp zk/src/main.nr "$zk_project/src/main.nr"
-          (cd "$zk_project" && "$RUNNER_TEMP/noir/nargo" compile)
-          mkdir -p zk/target
-          cp "$zk_project/target/paragon_private_transit_predicate.json" zk/target/paragon_private_transit_predicate.json
-          npm install --no-save --ignore-scripts --package-lock=false --no-audit --no-fund @noir-lang/noir_js@1.0.0-beta.20 @aztec/bb.js@3.0.0-nightly.20251104
-          node acceptance/zk.mjs
-      - name: Combined result and honest acceptance gate
+          cd "$RUNNER_TEMP/paragon-pinned-zk"
+          node run-zk.mjs 2>&1 | tee proof-execution.log
+      - name: Complete result or full error context in summary
         if: always()
-        env:
-          CORE: ${{ steps.core.outcome }}
-          TLC: ${{ steps.tlc.outcome }}
-          FHE: ${{ steps.fhe.outcome }}
-          ZK: ${{ steps.zk.outcome }}
         shell: bash
+        env:
+          PROOF: ${{ steps.proof.outcome }}
         run: |
-          echo "Core=$CORE; TLC=$TLC; FHE=$FHE; ZK=$ZK"
           {
-            echo '## Coordinated evidence results'
-            echo "Core: $CORE"
-            echo "TLC: $TLC"
-            echo "OpenFHE: $FHE"
-            echo "Noir ZK: $ZK"
-            echo ''
-            echo 'Scope: local/synthetic acceptance only. Not full ANP/AP2, registered WBA, TEE, independent PIR/build, carrier authenticity, Bitcoin consensus or security certification.'
-            echo 'No artifacts, cache, secrets, payment, scheduled run, repository write or deployment.'
+            echo '## Pinned ZK qualification'
+            echo "Proof step: $PROOF"
+            echo 'Compiler/NoirJS: 1.0.0-beta.20. Barretenberg: 5.0.0-nightly.20260324.'
+            echo 'Synthetic predicate only. Core, TLC and OpenFHE are not re-run in this workflow.'
+            echo 'No Worker deployment, repository writes, payments, artifacts, cache or secrets.'
+            if test -f "$RUNNER_TEMP/paragon-pinned-zk/zk-pinned-result.json"; then
+              echo 'Proof bundle is recorded between PARAGON_ZK_RESULT markers in the job log.'
+              echo 'Public result hashes and scope:'
+              echo '```json'
+              cd "$RUNNER_TEMP/paragon-pinned-zk"
+              node --input-type=module -e 'import{readFileSync}from"node:fs";const{proofBase64,verificationKeyBase64,...summary}=JSON.parse(readFileSync("zk-pinned-result.json"));console.log(JSON.stringify(summary,null,2))'
+              echo '```'
+            elif test -f "$RUNNER_TEMP/paragon-pinned-zk/proof-execution.log"; then
+              echo 'Last 60 lines, including the actual error:'
+              echo '```text'
+              tail -n 60 "$RUNNER_TEMP/paragon-pinned-zk/proof-execution.log"
+              echo '```'
+            else
+              echo 'Proof did not start; inspect Prepare isolated synthetic project and pinned tools.'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
-          if test -d acceptance/results; then
-            find acceptance/results -maxdepth 1 -name '*.json' -type f -exec cat {} \;
-          fi
-          test "$CORE" = success && test "$TLC" = success && test "$FHE" = success && test "$ZK" = success
