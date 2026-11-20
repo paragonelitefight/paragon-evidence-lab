@@ -88,7 +88,14 @@ jobs:
           sha256sum "$RUNNER_TEMP/noir.tar.gz"
           tar -xzf "$RUNNER_TEMP/noir.tar.gz" -C "$RUNNER_TEMP/noir"
           "$RUNNER_TEMP/noir/nargo" --version
-          (cd zk && "$RUNNER_TEMP/noir/nargo" compile)
+          # Isolate the project from the flattened root Nargo.toml.
+          zk_project="$(mktemp -d "$RUNNER_TEMP/paragon-zk.XXXXXX")"
+          mkdir -p "$zk_project/src"
+          cp zk/Nargo.toml "$zk_project/Nargo.toml"
+          cp zk/src/main.nr "$zk_project/src/main.nr"
+          (cd "$zk_project" && "$RUNNER_TEMP/noir/nargo" compile)
+          mkdir -p zk/target
+          cp "$zk_project/target/paragon_private_transit_predicate.json" zk/target/paragon_private_transit_predicate.json
           npm install --no-save --ignore-scripts --package-lock=false --no-audit --no-fund @noir-lang/noir_js@1.0.0-beta.20 @aztec/bb.js@3.0.0-nightly.20251104
           node acceptance/zk.mjs
       - name: Combined result and honest acceptance gate
