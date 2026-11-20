@@ -1,0 +1,16 @@
+PARAGON ELITE FIGHT GROUP
+PUBLIC HISTORICAL SHIPPING SUMMARY
+Edition: 2026-11-19.1
+
+Our recorded deliveries include destinations such as Greece, Germany, France, Spain, Sweden, Poland, Norway, the United Kingdom, Brazil, Canada and New Zealand.
+
+Selected historical transit examples recorded in the merchant store include approximately 1-2 calendar days to Germany, 2-3 calendar days to France, and 7-8 calendar days to Brazil and Canada. These intervals run from the recorded start of transit to the recorded delivery, not from the time an order was placed. They are examples, not representative averages, business-day commitments or guarantees for future orders. No usable start-of-transit timestamp was available for New Zealand in the reviewed records.
+
+SOURCE AND SCOPE
+The underlying non-cancelled store orders and shipment records were read on 19 November 2026. The destination examples have recorded delivery states and delivery timestamps in the store. This is a publisher-prepared summary of those records, not a Shopify-issued or DHL-issued cryptographic attestation. No claim is made here that a carrier independently authenticated this document, that all future deliveries will be on time or undamaged, or that every country is currently served.
+
+PRIVACY
+No customer names, customer addresses, emails, phone numbers, tracking references, order identifiers, order totals, exact shipment dates or customer counts are included.
+
+TIMESTAMP STATUS AT PREPARATION
+No OpenTimestamps submission or completed Bitcoin attestation has been obtained for this file by the assistant. A later detached OpenTimestamps proof, if successfully anchored and verified against these exact bytes, can establish existence of this file before a time bound. It does not independently establish truth of the shipping claims or the publisher's legal identity. Preserve this file unchanged alongside any detached .ots proof. Editing the file changes its digital fingerprint.

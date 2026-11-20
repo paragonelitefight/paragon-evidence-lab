@@ -1,0 +1,27 @@
+{
+  "format": "paragon-local-ots-inspection/0.1",
+  "proofBytes": 689,
+  "version": 1,
+  "fileDigest": "c143c226647fbfbf5b90945b14ad137f09f8bab78eb58223594566391bcc4a26",
+  "fullyConsumed": true,
+  "operationsProcessed": 36,
+  "attestations": [
+    {
+      "type": "pending_calendar",
+      "uri": "https://alice.btc.calendar.opentimestamps.org",
+      "commitment": "6aff1bf0248a7af41be8e8af675fdfbc34cd5da9146d2774ee6948e61b92cea5cb096d1b0cfb276b922141be"
+    },
+    {
+      "type": "pending_calendar",
+      "uri": "https://bob.btc.calendar.opentimestamps.org",
+      "commitment": "6aff1bf0998a743d24f970d498744ef28391d3ad4f882bbf74634613059376daaa38433d04f73b6a88703ea7"
+    },
+    {
+      "type": "pending_calendar",
+      "uri": "https://finney.calendar.eternitywall.com",
+      "commitment": "6aff1bf0d5d5cc032bfe68f3b5f7220e83b5f20adf7a9ca99f6807a31b70b674d7b886e7f4e1dd217822761a"
+    }
+  ],
+  "bitcoinVerified": false,
+  "method": "Bounded local binary parsing and hash-path computation, not execution of the upstream client and not a full independent Bitcoin verifier."
+}

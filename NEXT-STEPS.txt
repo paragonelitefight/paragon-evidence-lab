@@ -1,3 +1,6 @@
+HISTORICAL 0.10.0 NOTES — SUPERSEDED BY INTEGRATED-README.txt FOR EDITION 0.11.0
+The notes below describe the earlier candidate. An actual initial OpenTimestamps receipt has since been created and is included in 0.11.0; final Bitcoin verification remains unestablished. The latest upload was already committed. Do not repeat the old upload instructions.
+
 PARAGON COORDINATED CANDIDATE PACKAGE — 0.10.0
 
 This package combines the isolated Worker source with research modules. It is not all promised advanced functionality completed, tested or production-ready. No new tests are requested or triggered by this delivery. The earlier green CI result belongs to the earlier repository revision and its limited PIR/source-packaging checks only; it does not validate these additions.

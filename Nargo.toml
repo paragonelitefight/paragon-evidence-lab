@@ -1,0 +1,6 @@
+[package]
+name = "paragon_private_transit_predicate"
+type = "bin"
+authors = ["Paragon Elite Fight Group"]
+
+[dependencies]

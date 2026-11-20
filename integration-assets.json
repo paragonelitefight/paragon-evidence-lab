@@ -1,0 +1,22 @@
+[
+ {"route":"/batch-check","path":"worker/batch-check.html","type":"text/html; charset=utf-8"},
+ {"route":"/batch-check.mjs","path":"worker/batch-check.mjs","type":"application/javascript; charset=utf-8"},
+ {"route":"/research","path":"worker/research.html","type":"text/html; charset=utf-8"},
+ {"route":"/research/","path":"worker/research.html","type":"text/html; charset=utf-8"},
+ {"route":"/protocols/ap2-jwt-binding-inspector.mjs","path":"protocols/ap2-jwt-binding-inspector.mjs","type":"application/javascript; charset=utf-8"},
+ {"route":"/protocols/web-bot-auth-request.mjs","path":"protocols/web-bot-auth-request.mjs","type":"application/javascript; charset=utf-8"},
+ {"route":"/protocols/anp-integration-boundary.json","path":"protocols/anp-integration-boundary.json","type":"application/json; charset=utf-8"},
+ {"route":"/research/pir/pir.mjs","path":"pir/pir.mjs","type":"application/javascript; charset=utf-8"},
+ {"route":"/research/zk/src/main.nr","path":"zk/src/main.nr","type":"text/plain; charset=utf-8"},
+ {"route":"/research/zk/Nargo.toml","path":"zk/Nargo.toml","type":"text/plain; charset=utf-8"},
+ {"route":"/research/zk/Prover.toml","path":"zk/Prover.toml","type":"text/plain; charset=utf-8"},
+ {"route":"/research/fhe/main.cpp","path":"fhe/main.cpp","type":"text/plain; charset=utf-8"},
+ {"route":"/research/fhe/CMakeLists.txt","path":"fhe/CMakeLists.txt","type":"text/plain; charset=utf-8"},
+ {"route":"/research/formal/EvidenceStatus.tla","path":"formal/EvidenceStatus.tla","type":"text/plain; charset=utf-8"},
+ {"route":"/research/formal/EvidenceStatus.cfg","path":"formal/EvidenceStatus.cfg","type":"text/plain; charset=utf-8"},
+ {"route":"/source/integration.js","path":"worker/integration.js","type":"application/javascript; charset=utf-8"},
+ {"route":"/source/worker-integrated-pack.mjs","path":"build/worker-integrated-pack.mjs","type":"application/javascript; charset=utf-8"},
+ {"route":"/evidence/public-shipping-summary.txt","path":"evidence/public-shipping-summary.txt","type":"text/plain; charset=utf-8","filename":"paragon-public-shipping-summary.txt"},
+ {"route":"/evidence/public-shipping-summary.txt.ots","path":"evidence/public-shipping-summary.txt.ots","type":"application/octet-stream","binary":true,"filename":"paragon-public-shipping-summary.txt.ots"},
+ {"route":"/evidence/receipt-inspection.json","path":"evidence/receipt-inspection.json","type":"application/json; charset=utf-8"}
+]

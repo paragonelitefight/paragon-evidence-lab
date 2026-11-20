@@ -1,0 +1,16 @@
+{
+  "format": "paragon-anp-integration-boundary/0.1",
+  "enabled": false,
+  "descriptionOnly": true,
+  "authenticationImplemented": false,
+  "existingIdentityModified": false,
+  "requiredBeforeActivation": [
+    "Select and pin a specific ANP profile/specification release.",
+    "Bind a controlled HTTPS service origin and an appropriate DID method without altering the existing production identity.",
+    "Implement the selected ANP-02 authentication rules and corresponding method validation.",
+    "Generate a matching AgentDescription security configuration only after the receiver actually enforces it.",
+    "Validate discovery, authentication, rejection paths, expiry and replay behavior."
+  ],
+  "reason": "A descriptor or did:wba label alone is not ANP authentication. No active security configuration is advertised by this package.",
+  "specification": "https://github.com/agent-network-protocol/AgentNetworkProtocol/"
+}

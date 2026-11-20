@@ -1,0 +1,75 @@
+name: Coordinated isolated evidence acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: paragon-evidence-acceptance
+  cancel-in-progress: false
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Node runtime requirement
+        run: node -e "if(Number(process.versions.node.split('.')[0])<22)process.exit(1)"
+      - name: Core acceptance including actual local cryptographic checks
+        run: node acceptance/core.mjs
+      - name: Core result in logs
+        if: always()
+        run: test ! -f acceptance/results/core.json || cat acceptance/results/core.json
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        mode: [tlc, fhe, zk]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Finite model check or synthetic encrypted computation
+        if: matrix.mode != 'zk'
+        run: bash acceptance/research.sh '${{ matrix.mode }}'
+      - name: Fetch fixed Noir toolchain and compile synthetic predicate
+        if: matrix.mode == 'zk'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/noir"
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 -o "$RUNNER_TEMP/noir.tar.gz" https://github.com/noir-lang/noir/releases/download/v1.0.0-beta.20/noir-x86_64-unknown-linux-gnu.tar.gz
+          sha256sum "$RUNNER_TEMP/noir.tar.gz"
+          tar -xzf "$RUNNER_TEMP/noir.tar.gz" -C "$RUNNER_TEMP/noir"
+          "$RUNNER_TEMP/noir/nargo" --version
+          (cd zk && "$RUNNER_TEMP/noir/nargo" compile)
+          npm install --no-save --ignore-scripts --package-lock=false --no-audit --no-fund @noir-lang/noir_js@1.0.0-beta.20 @aztec/bb.js@3.0.0-nightly.20251104
+          node acceptance/zk.mjs
+      - name: Show scoped results in logs only
+        if: always()
+        shell: bash
+        run: |
+          if test -d acceptance/results; then
+            find acceptance/results -maxdepth 1 -type f -name '*.json' -exec cat {} \;
+          fi
+          echo 'No artifacts uploaded. No cache, secrets, deploy, schedule, payments or production modifications.'
+          echo 'A failed or incomplete job is NOT accepted. A green job covers only its explicitly named synthetic/local scope.'
+  summary:
+    if: always()
+    needs: [core, research]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Honest overall acceptance gate
+        env:
+          CORE: ${{ needs.core.result }}
+          RESEARCH: ${{ needs.research.result }}
+        run: |
+          echo "Core: $CORE; research: $RESEARCH"
+          echo 'Not covered: full ANP/AP2, registered WBA, TEE, independent PIR operators, independent rebuild, carrier authenticity, Bitcoin final verification, browser or Cloudflare runtime/security acceptance.'
+          test "$CORE" = success
+          test "$RESEARCH" = success
