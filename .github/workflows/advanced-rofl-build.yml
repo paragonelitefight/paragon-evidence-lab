@@ -28,6 +28,16 @@ jobs:
           os.environ['SOURCE_PARTS']=str(len(parts))
           for i,part in enumerate(parts):os.environ['SOURCE_PART_'+str(i)]=part
           payload=json.loads(gzip.decompress(base64.b64decode(encoded)))
+          # Preserve the verified runtime payload and exact image digest.
+          # ROFL requires an explicit registry/repository, unlike Docker's short-name resolver.
+          marker="compose=json.loads(payload['compose'])\n"
+          if payload['prepare'].count(marker)!=1:raise SystemExit('Unexpected preparation source; refuse an ambiguous patch')
+          normalized=(marker+
+              "gateway=compose['services']['protocol-gateway']\n"+
+              "expected='python@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b'\n"+
+              "if gateway['image']!=expected:raise SystemExit('Unexpected base image; refuse replacement')\n"+
+              "gateway['image']='docker.io/library/'+expected\n")
+          payload['prepare']=payload['prepare'].replace(marker,normalized,1)
           pathlib.Path('prepare_build.py').write_text(payload['prepare'])
           pathlib.Path('finish_build.py').write_text(payload['finish'])
           exec(compile(payload['prepare'],'prepare_build.py','exec'))
@@ -49,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm --platform linux/amd64 -e PYTHONDONTWRITEBYTECODE=1             -v "$PWD/runtime:/app:ro"             python@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b             python -c 'import os,subprocess,sys; subprocess.run([sys.executable,"-m","pip","install","--no-cache-dir","--disable-pip-version-check","--require-hashes","--only-binary=:all:","--target","/tmp/deps","-r","/app/requirements.lock.txt"],check=True,stdout=subprocess.DEVNULL); env=os.environ.copy(); env["PYTHONPATH"]="/tmp/deps:/app/vendor:/app"; subprocess.run([sys.executable,"/app/exercise_gateway.py"],env=env,check=True)'             2>&1 | tee out/protocol-execution.log
+          docker run --rm --platform linux/amd64 -e PYTHONDONTWRITEBYTECODE=1             -v "$PWD/runtime:/app:ro"             docker.io/library/python@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b             python -c 'import os,subprocess,sys; subprocess.run([sys.executable,"-m","pip","install","--no-cache-dir","--disable-pip-version-check","--require-hashes","--only-binary=:all:","--target","/tmp/deps","-r","/app/requirements.lock.txt"],check=True,stdout=subprocess.DEVNULL); env=os.environ.copy(); env["PYTHONPATH"]="/tmp/deps:/app/vendor:/app"; subprocess.run([sys.executable,"/app/exercise_gateway.py"],env=env,check=True)'             2>&1 | tee out/protocol-execution.log
       - name: Download checksum-pinned official CLI and build actual ORC (NO deployment)
         shell: bash
         run: |
