@@ -11,13 +11,13 @@ const {witness}=await noir.execute({transit_hours:'48',limit_hours:'72'});
 await assert.rejects(noir.execute({transit_hours:'73',limit_hours:'72'}));
 await assert.rejects(noir.execute({transit_hours:'0',limit_hours:'0'}));
 await assert.rejects(noir.execute({transit_hours:'1',limit_hours:'8761'}));
-let api;
 let backend;
 try {
  if(typeof bb.UltraHonkBackend!=='function')throw new Error('Pinned backend does not export UltraHonkBackend; qualification failed');
- if(bb.Barretenberg && typeof bb.Barretenberg.new==='function'){
-  api=await bb.Barretenberg.new({threads:1});backend=new bb.UltraHonkBackend(circuit.bytecode,api);
- }else{backend=new bb.UltraHonkBackend(circuit.bytecode,{threads:1});}
+ // Pinned backend.js takes a BackendOptions object, NOT a Barretenberg instance.
+ // It creates and owns its API internally during generateProof/verifyProof.
+ backend=new bb.UltraHonkBackend(circuit.bytecode,{threads:1});
+ console.log('ZK: witness and invalid-input checks completed; backend configured with threads=1.');
  const proof=await backend.generateProof(witness);
  assert.equal(await backend.verifyProof(proof),true);
  assert.ok(proof.proof instanceof Uint8Array && proof.proof.length>0);
@@ -30,5 +30,5 @@ try {
  console.log('PASS: generated and verified one synthetic ZK proof; invalid witness and modified proof rejected.');
 } finally {
  if(backend && typeof backend.destroy==='function')await backend.destroy();
- if(api && typeof api.destroy==='function')await api.destroy();
+ // backend.destroy() disposes the internally owned API; no separate API instance exists.
 }
